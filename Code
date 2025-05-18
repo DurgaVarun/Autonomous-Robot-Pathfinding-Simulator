@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathfinding Visualizer</title>
+    <style>
+        .grid {
+            display: grid;
+            gap: 2px;
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .start {
+            background-color: green;
+        }
+        .end {
+            background-color: red;
+        }
+        .wall {
+            background-color: black;
+        }
+        .visited {
+            background-color: lightblue;
+        }
+        .path {
+            background-color: yellow;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pathfinding Visualizer</h1>
+    <label for="gridSize">Grid Size:</label>
+    <input type="number" id="gridSize" min="5" max="50" value="10">
+    <button id="startButton">Start Visualization</button>
+    <button id="resetButton">Reset Grid</button>
+    <div id="grid" class="grid"></div>
+    <script>
+        const grid = document.getElementById('grid');
+        const gridSizeInput = document.getElementById('gridSize');
+        const startButton = document.getElementById('startButton');
+        const resetButton = document.getElementById('resetButton');
+        let gridSize = parseInt(gridSizeInput.value);
+        let startNode = null, endNode = null;
+
+        function createGrid(size) {
+            grid.innerHTML = '';
+            grid.style.gridTemplateColumns = repeat(${size}, 30px);
+            grid.style.gridTemplateRows = repeat(${size}, 30px);
+
+            for (let i = 0; i < size * size; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = i;
+                grid.appendChild(cell);
+
+                cell.addEventListener('click', () => {
+                    if (!startNode) {
+                        cell.classList.add('start');
+                        startNode = i;
+                    } else if (!endNode) {
+                        cell.classList.add('end');
+                        endNode = i;
+                    } else {
+                        cell.classList.toggle('wall');
+                    }
+                });
+            }
+        }
+
+        function resetGrid() {
+            createGrid(gridSize);
+            startNode = null;
+            endNode = null;
+        }
+
+        gridSizeInput.addEventListener('change', () => {
+            gridSize = parseInt(gridSizeInput.value);
+            if (gridSize < 5 || gridSize > 50 || isNaN(gridSize)) {
+                alert('Grid size must be between 5 and 50.');
+                gridSizeInput.value = 10; // Reset to default if invalid
+                gridSize = 10;
+            }
+            resetGrid();
+        });
+
+        resetButton.addEventListener('click', resetGrid);
+
+        function bfs(gridSize, startNode, endNode) {
+            const gridCells = document.querySelectorAll('.cell');
+            const directions = [-1, 1, -gridSize, gridSize];
+            const queue = [[startNode]];
+            const visited = new Set([startNode]);
+            
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const current = path[path.length - 1];
+
+                if (current === endNode) {
+                    animatePath(path);
+                    return;
+                }
+
+                for (let dir of directions) {
+                    const next = current + dir;
+                    if (isValidMove(current, next, gridSize, visited, gridCells)) {
+                        visited.add(next);
+                        queue.push([...path, next]);
+                        gridCells[next].classList.add('visited');
+                    }
+                }
+            }
+            alert('No path found!');
+        }
+
+        function isValidMove(current, next, gridSize, visited, gridCells) {
+            if (next < 0 || next >= gridSize * gridSize || visited.has(next) || gridCells[next].classList.contains('wall')) {
+                return false;
+            }
+            const rowDiff = Math.abs(Math.floor(current / gridSize) - Math.floor(next / gridSize));
+            const colDiff = Math.abs((current % gridSize) - (next % gridSize));
+            return rowDiff + colDiff === 1; // Ensures only horizontal or vertical moves
+        }
+
+        function animatePath(path) {
+            let index = 0;
+            const gridCells = document.querySelectorAll('.cell');
+            function step() {
+                if (index < path.length) {
+                    gridCells[path[index]].classList.add('path');
+                    index++;
+                    setTimeout(step, 100);
+                }
+            }
+            step();
+        }
+
+        startButton.addEventListener('click', () => {
+            if (startNode === null || endNode === null) {
+                alert('Please set both start and end nodes.');
+                return;
+            }
+            bfs(gridSize, startNode, endNode);
+        });
+
+        // Initialize the grid
+        createGrid(gridSize);
+    </script>
+</body>
+</html>
